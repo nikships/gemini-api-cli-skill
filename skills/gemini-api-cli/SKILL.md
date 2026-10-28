@@ -1,6 +1,6 @@
 ---
 name: gemini-api-cli
-description: "Steer AI agents whenever they need text-to-speech (TTS, voiceovers, spoken audio, speech synthesis), image generation or conversational image editing, background music or audio track generation (Lyria), video generation or editing (Veo/Omni), audio/video transcription and SRT captions, media/document analysis (PDFs, images, charts, audio, video, YouTube URLs), Deep Research, or shell automation via the official gemini-api CLI. Use whenever the agent or user needs TTS, image gen, music, video, transcription, multimodal analysis, or Gemini API capabilities from the shell."
+description: "TTS, image generation or conversational image editing, background music or audio track generation, video generation or editing, audio/video transcription and SRT captions, media/document analysis (PDFs, images, charts, audio, video, YouTube URLs), Deep Research. Use whenever you or the user needs TTS, image gen, music, video, transcription, multimodal analysis."
 ---
 
 # gemini-api CLI
