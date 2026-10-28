@@ -15,7 +15,7 @@ Steer any coding agent whenever it needs TTS, image generation, music, video, tr
 
 An [Agent Skill](https://agentskills.io) for [`google-gemini/gemini-api-cli`](https://github.com/google-gemini/gemini-api-cli) (`gemini-api`). Google's repo has no skill, so this one fills the gap. Hand it to an agent and it can generate text and structured JSON, create and edit images, produce speech, music and video, analyze PDFs, images, audio, video and YouTube links, transcribe to SRT, upload large files, and run background managed agents such as Deep Research.
 
-The recipes were checked against `gemini-api` v0.4.4. The CLI is in beta, so the skill tells agents to re-read `--help` if a flag changes.
+The recipes were checked against `gemini-api` v0.4.4 and latest `main`. The CLI is in beta, so the skill tells agents to re-read `--help` if a flag changes.
 
 ## Quick Start
 

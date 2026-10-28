@@ -5,7 +5,7 @@ description: "TTS, image generation or conversational image editing, background 
 
 # gemini-api CLI
 
-`gemini-api` is a stateless Go CLI over the Gemini Interactions API (v1beta). Each call is independent. You hold the IDs and file paths you want to reuse. Tested against v0.4.4 (beta; flags can change between releases, so check `--help` when something errors).
+`gemini-api` is a stateless Go CLI over the Gemini Interactions API (v1beta). Each call is independent. You hold the IDs and file paths you want to reuse. Tested against v0.4.4 and latest `main` (beta; flags can change between releases, so check `--help` when something errors).
 
 ## Preflight (do this first, once)
 
@@ -16,7 +16,7 @@ gemini-api whoami            # shows credential source, masked
 
 - Not installed: `curl -fsSL https://raw.githubusercontent.com/google-gemini/gemini-api-cli/main/scripts/install.sh | bash`, or `go install github.com/google-gemini/gemini-api-cli/cmd/gemini-api@latest`.
 - Auth precedence: flags > env (`GEMINI_API_KEY`) > OS keychain > `~/.config/gemini-api/config.yaml`. Pass `--api-key` or set `GEMINI_API_KEY` for a one-off.
-- Exit code 3 means the key is bad or missing. A replacement key must be created by the user in Google AI Studio. Do not run `configure` or loop retries yourself. Ask the user for a valid key.
+- Exit code 3 means the key is bad or missing. API keys can only be created by a human in Google AI Studio (https://ai.google.dev/gemini-api/docs/api-key). An agent must stop and ask the user to provide a key or set `GEMINI_API_KEY`. Do not run `configure` or loop retries yourself.
 - Never print or log the API key. `--dry-run` redacts it.
 
 ## Golden rules for agents
@@ -46,7 +46,7 @@ gemini-api whoami            # shows credential source, masked
 | Long autonomous research or coding task | `agent run --agent ... --background` | n/a |
 | Anything the flags do not cover | `agent run --body @req.json` | n/a |
 
-List models: `gemini-api models` (offline catalog), `models list --all` (live, what your key can use), `models get <id>`. Aliases `gemini-flash-latest`, `gemini-flash-lite-latest`, `gemini-pro-latest` track newest releases. Cheaper/faster text: `gemini-flash-lite-latest`. Hardest reasoning: `gemini-pro-latest` or `gemini-4-argon`.
+List models: `gemini-api models` (offline catalog), `models list --all` (live, what your key can use), `models get <id>`. Aliases `gemini-flash-latest`, `gemini-flash-lite-latest`, `gemini-pro-latest` track newest releases. Cheaper/faster text: `gemini-flash-lite-latest`. Hardest reasoning: `gemini-pro-latest` or `gemini-4-argon`. Robotics embodied reasoning: `gemini-robotics-er-2-preview`.
 
 ## Recipes (all verified live)
 
@@ -79,7 +79,7 @@ T1=$(gemini-api generate "Remember 42" --stream=false -q .id)
 gemini-api generate "What number?" --previous-interaction-id "$T1" --stream=false -q '.steps[-1].content[0].text'
 ```
 
-Grounding and tools go through `--body` (see reference.md): `--body '{"tools":[{"type":"google_search"}]}'`. Other tool types: `url_context`, `code_execution`, `google_maps`, `file_search`, `mcp_server`, `function`, `retrieval`, `computer_use`. Thinking: `{"generation_config":{"thinking_level":"minimal|low|medium|high"}}`.
+Grounding and tools go through `--body` (see reference.md): `--body '{"tools":[{"type":"google_search"}]}'`. Other tool types: `url_context`, `code_execution`, `google_maps`, `file_search`, `mcp_server`, `function`, `retrieval`, `computer_use`. Function call results (`function_result`) accept rich multimodal sub-content: text/JSON, `audio_content`, `document_content`, and `video_content`. Thinking: `{"generation_config":{"thinking_level":"minimal|low|medium|high"}}`.
 
 ### Images
 
@@ -163,14 +163,15 @@ gemini-api agent list -q '.agents[].id'
 # Deep Research (slow, many minutes, costly). Return immediately with an ID:
 ID=$(gemini-api agent run "Compare battery recycling methods, cite sources" \
       --agent deep-research-preview-04-2026 --background --stream=false -q .id)
-gemini-api agent status "$ID" -q .status        # in_progress | completed | failed | cancelled | requires_action ...
+gemini-api agent status "$ID" -q .status        # in_progress | completed | failed | cancelled | requires_action | requires_continuation ...
 gemini-api agent status "$ID" -q '[.steps[]|select(.type=="model_output")|.content[].text]|join("")'
 gemini-api agent status "$ID" --stream          # replay or follow events
 gemini-api agent cancel "$ID"                   # only for still-running background runs
 gemini-api agent delete-interaction "$ID"       # alias: di
 ```
 
-Poll with `sleep` and backoff (10-30 s for research), stop on terminal status. Known `--agent` values: `deep-research-preview-04-2026`, `deep-research-max-preview-04-2026`, `deep-research-pro-preview-12-2025`, `antigravity-preview-05-2026`. `--agent` and `--model` cannot be combined. Custom agents: `agent create --base-agent <id> --id <name> -s "system instruction"`, plus `agent get|delete`.
+- **Checkpoint & stream resumption:** If a stream disconnects or status reports `requires_continuation`, pass the returned `.continuation_token` via `--continuation-token "$TOKEN"` (or in `--body '{"continuation_token":"..."}'`) to resume decoding from the latest checkpoint.
+- Poll with `sleep` and backoff (10-30 s for research), stop on terminal status. Known `--agent` values: `deep-research-preview-04-2026`, `deep-research-max-preview-04-2026`, `deep-research-pro-preview-12-2025`, `antigravity-preview-05-2026`. `--agent` and `--model` cannot be combined. Custom agents: `agent create --base-agent <id> --id <name> -s "system instruction"`, plus `agent get|delete`.
 
 ## Full control with --body
 
@@ -209,6 +210,14 @@ gemini-api image --body @req.json --out ./x.jpg --dry-run -o json
 | Unknown flag after upgrade | CLI is beta; re-read `gemini-api <cmd> --help`. |
 | Model name rejected | `gemini-api models list --all` for what your key can access. |
 
-## Other command groups (rarely needed)
+## Sandbox runtime and environments
 
-`environments` (sandbox environments, `files upload|download|list`, `connect`/`poll`/`serve` workers; `connect` runs `execute_bash` unsandboxed, so use `--disable-bash` or a container), `credentials` (server-side bearer/OAuth/env-var secrets injected by agents), `webhooks` (events: `batch.succeeded|expired|failed`, `interaction.requires_action|completed|failed`, `video.generated`), `triggers` (cron schedules for managed agents: `list|get|update --status active|paused|run|list-executions|delete`). Details, flags and sample bodies are in `reference.md` next to this file.
+`gemini-api environments` manages sandboxes and local execution workers:
+- `connect`: Run an in-process worker that leases interactions and executes tool calls locally (`--environment-key`, `--root-dir .`, `--workdir .`, `--max-concurrent 4`, `--command-timeout 2m`, `--disable-bash`). **Security:** `execute_bash` runs unsandboxed on the host; run inside a container/VM or pass `--disable-bash`.
+- `poll`: Run a control-plane poller that leases interactions and dispatches them to external worker scripts via `--provision-cmd <script>` (sends v1 JSON to stdin).
+- `serve`: Execute a single pre-leased interaction given `--interaction-id` and `--lease-token`.
+- `files`: Inspect/upload/download snapshot files (`files upload <env> <file>`, `files download <env> <path>`, `files list -e <env>`).
+
+## Other command groups
+
+`credentials` (server-side bearer/OAuth/env-var secrets injected by agents into outgoing HTTP requests: `create|list|get|update|delete`), `webhooks` (events: `batch.succeeded|expired|failed`, `interaction.requires_action|completed|failed`, `video.generated`: `create|list|get|update|ping|rotate-signing-secret|delete`), `triggers` (cron schedules for managed agents: `list|get|update --status active|paused|run|list-executions|delete`). Details, flags and sample bodies are in `reference.md` next to this file.

@@ -1,4 +1,4 @@
-# gemini-api reference (v0.4.4)
+# gemini-api reference (v0.4.4 / latest main)
 
 Source: https://github.com/google-gemini/gemini-api-cli. Verified against the installed binary's `--help` and `--schema`. Re-verify with `gemini-api <cmd> --help` and `gemini-api --usage` (full KDL tree) since the CLI is beta.
 
@@ -40,11 +40,13 @@ Hints can contain direct instructions (for example, to stop and ask the user for
   steps:[ {type:"thought",signature}, {type:"model_output",content:[{type:"text",text}]}, ... ] }
 ```
 
-Status values: `in_progress`, `requires_action`, `completed`, `failed`, `cancelled`, `incomplete`, `budget_exceeded`, `queued`. Other step types: `user_input`, `function_call`, `function_result`, `google_search_call/result`, `url_context_call/result`, `code_execution_call/result`, `mcp_server_tool_call/result`, `retrieval_call/result`, `file_search_call/result`, `google_maps_call/result`.
+Status values: `in_progress`, `requires_action`, `completed`, `failed`, `cancelled`, `incomplete`, `budget_exceeded`, `queued`, `requires_continuation`. Other step types: `user_input`, `function_call`, `function_result`, `google_search_call/result`, `url_context_call/result`, `code_execution_call/result`, `mcp_server_tool_call/result`, `retrieval_call/result`, `file_search_call/result`, `google_maps_call/result`.
+
+`requires_continuation`: The stream or interaction checkpointed. Resume decoding with `--continuation-token "$TOKEN"` using the `.continuation_token` from the status update.
 
 Final text: `[.steps[]|select(.type=="model_output")|.content[]|select(.type=="text")|.text]|join("")`.
 
-`requires_action` means the model returned a `function_call` for your own declared function. Run it yourself and send a `function_result` step through `agent run --body` with `previous_interaction_id`.
+`requires_action` means the model returned a `function_call` for your own declared function. Run it yourself and send a `function_result` step through `agent run --body` with `previous_interaction_id`. Function results accept rich multimodal sub-content (`AudioContent`, `DocumentContent`, `VideoContent`, and text/JSON).
 
 ## Request body fields (ModelInteraction / AgentInteraction)
 
@@ -86,13 +88,13 @@ gemini-api agent run --body @req.json -q '[.steps[]|select(.type=="model_output"
 
 **transcribe**: `-i` (required, repeatable, local or `files/<id>`), `--format md|text|json|srt`, `--no-speakers`, `--no-timestamps`, `--out`, `-m`, `--mime-type`. Prints one path per input.
 
-**agent**: `run [input]` (`--agent` | `-m`, `--background`, `--stream`, `-i`, `--previous-interaction-id`, `--body`), `status [id]` (`--stream`, `-l/--last-event-id`, `--include-input`), `cancel [id]`, `delete-interaction|di [id]`, `create` (`--base-agent`, `-i/--id`, `-s/--system-instruction`, `--description`, `-t/--tools` JSON array, `-a/--agent-config` JSON, `--base-environment` JSON), `list` (`-a`, `--page-size`, `--page-token`, `--max-pages`), `get [id]`, `delete [id]`.
+**agent**: `run [input]` (`--agent` | `-m`, `--background`, `--stream`, `-i`, `--previous-interaction-id`, `--continuation-token`, `--body`), `status [id]` (`--stream`, `-l/--last-event-id`, `--include-input`), `cancel [id]`, `delete-interaction|di [id]`, `create` (`--base-agent`, `-i/--id`, `-s/--system-instruction`, `--description`, `-t/--tools` JSON array, `-a/--agent-config` JSON, `--base-environment` JSON), `list` (`-a`, `--page-size`, `--page-token`, `--max-pages`), `get [id]`, `delete [id]`.
 
 **files**: `upload <path>` (`--wait`, `--wait-timeout 5m`, `--display-name`, `--mime-type`), `list` (`-a`, `--page-size` max 100), `get [file]`, `delete [file]`, `generated-files-list|gfl` (`--page-size` max 50), `register --uris '["gs://..."]'` (OAuth token required).
 
-**models**: bare = offline catalog; `list [-a]` live; `get [model]` shows token limits and supported methods.
+**models**: bare = offline catalog (`gemini-3.8-flash`, `gemini-4-argon`, `gemini-robotics-er-2-preview`, `lyria-3.5`, `gemini-3.8-flash-tts`, `gemini-nano-banana-2.1`, `gemini-omni-1.1-flash`, etc.); `list [-a]` live; `get [model]` shows token limits and supported methods.
 
-**environments**: `create` (`-f/--from-environment`, `-n/--network` JSON, `-s/--sources` JSON array), `list`, `get`, `delete`, `files list -e <env> [-p path] [-r]`, `files upload <env> <local> [--path --extract --overwrite --mime-type]`, `files download <env> <path> [--out]`, `connect` (self-hosted worker; `--environment-key` or `GEMINI_ENVIRONMENT_KEY`, `--root-dir`, `--workdir`, `--max-concurrent 4`, `--disable-bash`, `--command-timeout 2m`), `poll`, `serve`. `execute_bash` in `connect` runs on the host unsandboxed. Run only in a container or VM, or pass `--disable-bash`.
+**environments**: `create` (`-f/--from-environment`, `-n/--network` JSON, `-s/--sources` JSON array), `list`, `get`, `delete`, `files list -e <env> [-p path] [-r]`, `files upload <env> <local> [--path --extract --overwrite --mime-type]`, `files download <env> <path> [--out]`, `connect` (run in-process worker; `--environment-key`, `--root-dir`, `--workdir`, `--max-concurrent 4`, `--command-timeout 2m`, `--heartbeat-interval 5s`, `--disable-bash`, `--quiet`), `poll` (stateless dispatcher; `--provision-cmd`, `--environment-key`, `--environment`, `--poller-id`, `--max-interactions 10`, `--poll-interval 2s`, `--provision-timeout 2m`, `--handoff-heartbeat-interval 5s`), `serve` (one-shot worker; `--interaction-id`, `--lease-token`, `--environment-key`, `--root-dir`, `--workdir`, `--command-timeout 2m`, `--disable-bash`). Security: `execute_bash` runs unsandboxed on the host; run only in a container/VM or pass `--disable-bash`.
 
 **credentials**: `create|list|get|update|delete`. Bodies:
 - `{"id":"github-token","type":"bearer_token","token":"..."}` (optional `header_name`, `prefix`)
