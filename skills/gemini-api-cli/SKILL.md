@@ -1,6 +1,6 @@
 ---
 name: gemini-api-cli
-description: "Use the `gemini-api` CLI (google-gemini/gemini-api-cli) to call Gemini from the shell: text generation, structured JSON output, image generation and editing, text-to-speech, music, video, analyzing PDFs/images/audio/video/YouTube, transcription and SRT captions, Files API uploads, and background managed agents such as Deep Research. Use whenever the user or task needs Gemini, Nano Banana, Lyria, Veo/Omni video, Gemini TTS, Deep Research, or says \"gemini-api\"."
+description: "Steer AI agents whenever they need text-to-speech (TTS, voiceovers, spoken audio, speech synthesis), image generation or conversational image editing, background music or audio track generation (Lyria), video generation or editing (Veo/Omni), audio/video transcription and SRT captions, media/document analysis (PDFs, images, charts, audio, video, YouTube URLs), Deep Research, or shell automation via the official gemini-api CLI. Use whenever the agent or user needs TTS, image gen, music, video, transcription, multimodal analysis, or Gemini API capabilities from the shell."
 ---
 
 # gemini-api CLI

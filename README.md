@@ -4,7 +4,7 @@
 
 # gemini-api-cli skill
 
-Teach any coding agent to drive the Gemini API from the shell with the official `gemini-api` CLI.
+Steer any coding agent whenever it needs TTS, image generation, music, video, transcription, or multimodal analysis via the official `gemini-api` CLI.
 
 [![License](https://img.shields.io/github/license/nikships/gemini-api-cli-skill?style=for-the-badge)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/nikships/gemini-api-cli-skill?style=for-the-badge)](https://github.com/nikships/gemini-api-cli-skill/stargazers)
